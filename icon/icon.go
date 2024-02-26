@@ -1,23 +1,20 @@
 package icon
 
-import (
-	"log"
-	"os"
-)
+import _ "embed"
+
+//go:embed default.ico
+var defaultIconData []byte
+
+//go:embed blackAndWhite.ico
+var blackAndWhiteIconData []byte
 
 func GetIconData(iconPath string) []byte {
-	data, err := os.ReadFile(iconPath)
-	if err != nil {
-		log.Fatal(err)
+	switch iconPath {
+	case "default.ico":
+		return defaultIconData
+	case "blackAndWhite.ico":
+		return blackAndWhiteIconData
+	default:
+		return nil
 	}
-
-	return data
-}
-
-func DefaultIconPath() string {
-	return "./icon/default.ico"
-}
-
-func BlackAndWhiteIconPath() string {
-	return "./icon/black_and_white.ico"
 }

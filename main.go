@@ -14,7 +14,7 @@ func main() {
 }
 
 func onReady() {
-	systray.SetIcon(icon.GetIconData(icon.BlackAndWhiteIconPath()))
+	systray.SetIcon(icon.GetIconData("blackAndWhite.ico"))
 	systray.SetTitle("D-Clo Local Server")
 	systray.SetTooltip("D-Clo Local Server")
 	mStart := systray.AddMenuItem("Run", "Run D-clo Api Local Server")
@@ -30,10 +30,10 @@ func onReady() {
 			select {
 			case <-ticker.C:
 				if checkServerStatus(serverHost, serverPort) {
-					systray.SetIcon(icon.GetIconData(icon.DefaultIconPath()))
+					systray.SetIcon(icon.GetIconData("default.ico"))
 					systray.SetTooltip("D-Clo Local Server - Running")
 				} else {
-					systray.SetIcon(icon.GetIconData(icon.BlackAndWhiteIconPath()))
+					systray.SetIcon(icon.GetIconData("blackAndWhite.ico"))
 					systray.SetTooltip("D-Clo Local Server - Stopped")
 				}
 			case <-mStart.ClickedCh:
