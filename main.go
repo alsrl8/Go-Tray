@@ -24,32 +24,40 @@ func onReady() {
 	serverHost := "192.168.0.193"
 	serverPort := "5000"
 
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
+	go func() {
+		for range ticker.C {
+			if checkServerStatus(serverHost, serverPort) {
+				systray.SetIcon(icon.GetIconData("default.ico"))
+				systray.SetTooltip("D-Clo Local Server - Running")
+			} else {
+				systray.SetIcon(icon.GetIconData("blackAndWhite.ico"))
+				systray.SetTooltip("D-Clo Local Server - Stopped")
+			}
+		}
+	}()
+
 	go func() {
 		for {
 			select {
-			case <-ticker.C:
-				if checkServerStatus(serverHost, serverPort) {
-					systray.SetIcon(icon.GetIconData("default.ico"))
-					systray.SetTooltip("D-Clo Local Server - Running")
-				} else {
-					systray.SetIcon(icon.GetIconData("blackAndWhite.ico"))
-					systray.SetTooltip("D-Clo Local Server - Stopped")
-				}
 			case <-mStart.ClickedCh:
 				resp, err := http.Get("http://192.168.0.193:8080/start")
 				if err != nil {
 					fmt.Println("Error:", err)
+					systray.Quit()
 					return
 				}
 				resp.Body.Close()
+				break
 			case <-mStop.ClickedCh:
 				resp, err := http.Get("http://192.168.0.193:8080/stop")
 				if err != nil {
 					fmt.Println("Error:", err)
+					systray.Quit()
 					return
 				}
 				resp.Body.Close()
+				break
 			case <-mQuit.ClickedCh:
 				ticker.Stop()
 				systray.Quit()
