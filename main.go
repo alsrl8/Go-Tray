@@ -2,8 +2,10 @@ package main
 
 import (
 	"Go-Tray/icon"
+	"fmt"
 	"github.com/getlantern/systray"
 	"net"
+	"net/http"
 	"time"
 )
 
@@ -15,6 +17,8 @@ func onReady() {
 	systray.SetIcon(icon.GetIconData(icon.BlackAndWhiteIconPath()))
 	systray.SetTitle("D-Clo Local Server")
 	systray.SetTooltip("D-Clo Local Server")
+	mStart := systray.AddMenuItem("Run", "Run D-clo Api Local Server")
+	mStop := systray.AddMenuItem("Stop", "Stop D-clo Api Local Server")
 	mQuit := systray.AddMenuItem("Quit", "Quit the whole app")
 
 	serverHost := "192.168.0.193"
@@ -32,6 +36,20 @@ func onReady() {
 					systray.SetIcon(icon.GetIconData(icon.BlackAndWhiteIconPath()))
 					systray.SetTooltip("D-Clo Local Server - Stopped")
 				}
+			case <-mStart.ClickedCh:
+				resp, err := http.Get("http://192.168.0.193:8080/start")
+				if err != nil {
+					fmt.Println("Error:", err)
+					return
+				}
+				resp.Body.Close()
+			case <-mStop.ClickedCh:
+				resp, err := http.Get("http://192.168.0.193:8080/stop")
+				if err != nil {
+					fmt.Println("Error:", err)
+					return
+				}
+				resp.Body.Close()
 			case <-mQuit.ClickedCh:
 				ticker.Stop()
 				systray.Quit()
