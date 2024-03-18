@@ -9,6 +9,20 @@ import (
 	"time"
 )
 
+type serverType int
+
+const (
+	dclo serverType = iota
+	admin
+)
+
+type serverInfo struct {
+	serverType
+	host      string
+	port      string
+	isRunning bool
+}
+
 func main() {
 	systray.Run(onReady, onExit)
 }
@@ -17,22 +31,62 @@ func onReady() {
 	systray.SetIcon(icon.GetIconData("blackAndWhite.ico"))
 	systray.SetTitle("D-Clo Local Server")
 	systray.SetTooltip("D-Clo Local Server")
-	mStart := systray.AddMenuItem("Run", "Run D-clo Api Local Server")
-	mStop := systray.AddMenuItem("Stop", "Stop D-clo Api Local Server")
+	dcloStart := systray.AddMenuItem("Start Dclo", "Run D-clo Api Local Server")
+	dcloStop := systray.AddMenuItem("Stop Dclo", "Stop D-clo Api Local Server")
+	adminStart := systray.AddMenuItem("Start Admin", "Run Admin Api Local Server")
+	adminStop := systray.AddMenuItem("Stop Admin", "Stop Admin Api Local Server")
+	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("Quit", "Quit the whole app")
 
-	serverHost := "192.168.0.193"
-	serverPort := "5000"
+	dcloServerInfo := serverInfo{
+		host:       "192.168.0.193",
+		port:       "5000",
+		serverType: dclo,
+		isRunning:  false,
+	}
+	adminServerInfo := serverInfo{
+		host:       "192.168.0.193",
+		port:       "5001",
+		serverType: admin,
+		isRunning:  false,
+	}
 
 	ticker := time.NewTicker(1 * time.Second)
 	go func() {
 		for range ticker.C {
-			if checkServerStatus(serverHost, serverPort) {
-				systray.SetIcon(icon.GetIconData("default.ico"))
-				systray.SetTooltip("D-Clo Local Server - Running")
-			} else {
+			dcloServerInfo.isRunning = checkServerStatus(dcloServerInfo)
+			adminServerInfo.isRunning = checkServerStatus(adminServerInfo)
+
+			if !dcloServerInfo.isRunning && !adminServerInfo.isRunning {
 				systray.SetIcon(icon.GetIconData("blackAndWhite.ico"))
-				systray.SetTooltip("D-Clo Local Server - Stopped")
+				systray.SetTooltip("Every server is stopped")
+				dcloStart.Show()
+				dcloStop.Hide()
+				adminStart.Show()
+				adminStop.Hide()
+				continue
+			} else {
+				systray.SetIcon(icon.GetIconData("default.ico"))
+			}
+
+			if dcloServerInfo.isRunning {
+				dcloStart.Hide()
+				dcloStop.Show()
+				if adminServerInfo.isRunning {
+					adminStart.Hide()
+					adminStop.Show()
+					systray.SetTooltip("Servers(Dclo, Admin) are running")
+				} else {
+					adminStart.Show()
+					adminStop.Hide()
+					systray.SetTooltip("Dclo server is running")
+				}
+			} else {
+				dcloStart.Show()
+				dcloStop.Hide()
+				adminStart.Hide()
+				adminStop.Show()
+				systray.SetTooltip("Admin server is running")
 			}
 		}
 	}()
@@ -40,7 +94,7 @@ func onReady() {
 	go func() {
 		for {
 			select {
-			case <-mStart.ClickedCh:
+			case <-dcloStart.ClickedCh:
 				resp, err := http.Get("http://192.168.0.193:8080/start")
 				if err != nil {
 					fmt.Println("Error:", err)
@@ -49,8 +103,26 @@ func onReady() {
 				}
 				resp.Body.Close()
 				break
-			case <-mStop.ClickedCh:
+			case <-dcloStop.ClickedCh:
 				resp, err := http.Get("http://192.168.0.193:8080/stop")
+				if err != nil {
+					fmt.Println("Error:", err)
+					systray.Quit()
+					return
+				}
+				resp.Body.Close()
+				break
+			case <-adminStart.ClickedCh:
+				resp, err := http.Get("http://192.168.0.193:8080/start-admin")
+				if err != nil {
+					fmt.Println("Error:", err)
+					systray.Quit()
+					return
+				}
+				resp.Body.Close()
+				break
+			case <-adminStop.ClickedCh:
+				resp, err := http.Get("http://192.168.0.193:8080/stop-admin")
 				if err != nil {
 					fmt.Println("Error:", err)
 					systray.Quit()
@@ -70,9 +142,9 @@ func onReady() {
 func onExit() {
 }
 
-func checkServerStatus(host string, port string) bool {
+func checkServerStatus(info serverInfo) bool {
 	timeout := 1 * time.Second
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), timeout)
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(info.host, info.port), timeout)
 	if err != nil {
 		return false
 	}
